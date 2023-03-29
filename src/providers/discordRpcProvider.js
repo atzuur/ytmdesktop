@@ -57,7 +57,7 @@ async function setActivity(info) {
                 activity.endTimestamp =
                     now +
                     (info.track.duration - info.player.seekbarCurrentPosition) *
-                        1000
+                    1000
             }
         }
 
@@ -66,25 +66,18 @@ async function setActivity(info) {
         activity.smallImageKey = info.player.isPaused
             ? 'discordrpc-pause'
             : 'discordrpc-play'
-        activity.largeImageText = 'YouTube Music'
+        activity.largeImageText = info.track.album || info.track.title
         activity.smallImageText = info.player.isPaused ? 'Paused' : 'Playing'
         activity.instance = false
-        if (discordSettings.details) {
-            activity.buttons = [
-                {
-                    label: 'Play on YouTube Music',
-                    url: 'https://music.youtube.com/watch?v=' + info.track.id,
-                },
-            ]
-        }
 
-        if ((!discordSettings.hideIdle && info.player.isPaused) || info.track.isAdvertisement) {
+        if (info.track.isAdvertisement) {
             await client.clearActivity()
         } else {
             // As of writing this discord-rpc was not updated to support buttons with setActivity
             await client.request('SET_ACTIVITY', {
                 pid: process.pid,
                 activity: {
+                    type: 2,
                     state: activity.state,
                     details: activity.details,
                     timestamps: {
