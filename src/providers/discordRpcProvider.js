@@ -72,7 +72,6 @@ async function setActivity(info) {
         if (info.track.isAdvertisement) {
             await client.clearActivity()
         } else {
-            // As of writing this discord-rpc was not updated to support buttons with setActivity
             await client.request('SET_ACTIVITY', {
                 pid: process.pid,
                 activity: {
