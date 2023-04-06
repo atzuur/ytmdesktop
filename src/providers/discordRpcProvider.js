@@ -62,14 +62,10 @@ async function setActivity(info) {
         }
 
         activity.largeImageKey = info.track.cover
-        activity.smallImageKey = info.player.isPaused
-            ? 'discordrpc-pause'
-            : 'discordrpc-play'
         activity.largeImageText = info.track.album || info.track.title
-        activity.smallImageText = info.player.isPaused ? 'Paused' : 'Playing'
         activity.instance = false
 
-        if (info.track.isAdvertisement) {
+        if (info.track.isAdvertisement || info.track.isPaused) {
             await client.clearActivity()
         } else {
             await client.request('SET_ACTIVITY', {
@@ -85,8 +81,6 @@ async function setActivity(info) {
                     assets: {
                         large_image: activity.largeImageKey,
                         large_text: activity.largeImageText,
-                        small_image: activity.smallImageKey,
-                        small_text: activity.smallImageText,
                     },
                     instance: activity.instance,
                     buttons: activity.buttons,
