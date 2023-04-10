@@ -38,7 +38,7 @@ function stop() {
 }
 
 async function setActivity(info) {
-    if (isStarted() && info.track.title) {
+    if (isStarted() && info.track.title && !info.track.isPaused) {
         const now = Date.now()
         const activity = {}
         const discordSettings = settingsProvider.get('discord-presence-settings')
@@ -65,7 +65,7 @@ async function setActivity(info) {
         activity.largeImageText = info.track.album || info.track.title
         activity.instance = false
 
-        if (info.track.isAdvertisement || info.track.isPaused) {
+        if (info.track.isAdvertisement) {
             await client.clearActivity()
         } else {
             await client.request('SET_ACTIVITY', {
