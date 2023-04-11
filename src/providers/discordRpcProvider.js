@@ -1,8 +1,12 @@
-const clientId = '495666957501071390'
-const RPC = require('discord-rpc')
-const settingsProvider = require('./settingsProvider')
+import { Client, Intents, ActivityType } from 'discord.js'
+import { get } from './settingsProvider'
 
-let client
+const clientId = '495666957501071390'
+
+const client = new Client({
+    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_PRESENCES],
+})
+
 let _isStarted
 
 function isStarted() {
@@ -13,23 +17,29 @@ function _setIsStarted(value) {
     _isStarted = value
 }
 
-function start() {
-    client = new RPC.Client({ transport: 'ipc' })
+client.once('ready', () => {
+    _setIsStarted(true)
+})
 
-    client.on('ready', () => _setIsStarted(true))
-
-    client.login({ clientId }).catch(() => {
+async function login() {
+    try {
+        await client.login({ clientId })
+    } catch (error) {
         if (!isStarted()) {
             setTimeout(() => {
-                start()
+                login()
             }, 10000)
         }
-    })
+    }
+}
 
-    client.on('disconnected', () => {
-        _setIsStarted(false)
-        start()
-    })
+client.on('shardDisconnected', () => {
+    _setIsStarted(false)
+    login()
+})
+
+async function start() {
+    await login()
 }
 
 function stop() {
@@ -38,56 +48,29 @@ function stop() {
 }
 
 async function setActivity(info) {
-    if (isStarted() && info.track.title && !info.track.isPaused) {
-        const now = Date.now()
-        const activity = {}
-        const discordSettings = settingsProvider.get('discord-presence-settings')
-
-        if (discordSettings.details) activity.details = info.track.title
-
-        if (discordSettings.state) activity.state = info.track.author
-
-        if (discordSettings.time) {
-            if (info.player.isPaused) {
-                delete activity.startTimestamp
-                delete activity.endTimestamp
-            } else {
-                activity.startTimestamp =
-                    now + info.player.seekbarCurrentPosition * 1000
-                activity.endTimestamp =
-                    now +
-                    (info.track.duration - info.player.seekbarCurrentPosition) *
-                    1000
-            }
-        }
-
-        activity.largeImageKey = info.track.cover
-        activity.largeImageText = info.track.album || info.track.title
-        activity.instance = false
-
-        if (info.track.isAdvertisement) {
-            await client.clearActivity()
-        } else {
-            await client.request('SET_ACTIVITY', {
-                pid: process.pid,
-                activity: {
-                    type: 2,
-                    state: activity.state,
-                    details: activity.details,
-                    timestamps: {
-                        start: activity.startTimestamp,
-                        end: activity.endTimestamp,
-                    },
-                    assets: {
-                        large_image: activity.largeImageKey,
-                        large_text: activity.largeImageText,
-                    },
-                    instance: activity.instance,
-                    buttons: activity.buttons,
-                },
-            })
-        }
+    if (!isStarted()) {
+        return
     }
+
+    if (
+        info.track.isAdvertisement ||
+        info.track.isPaused ||
+        !info.track.title
+    ) {
+        await client.user.setPresence({ activities: [] })
+        return
+    }
+
+    const activity = {}
+    const discordSettings = get('discord-presence-settings')
+
+    if (discordSettings.details) activity.details = info.track.title
+    if (discordSettings.state) activity.state = 'by ' + info.track.author
+    activity.largeImage = info.track.cover
+    activity.largeText = info.track.album || info.track.title
+    activity.type = ActivityType.LISTENING
+
+    await client.user.setPresence({ activities: [activity] })
 }
 
 module.exports = {
