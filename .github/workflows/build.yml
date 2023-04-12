@@ -19,6 +19,9 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 16.9.0
+        - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
       - run: yarn --frozen-lockfile
       - run: node ./script/build-current-platform.js
       - uses: actions/upload-artifact@v2
